@@ -7,7 +7,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProfileChangeLogService } from '../services/profile-change-log.service';
-import { CreateProfileChangeLogDto } from '../dto/create-profile-change-log.dto';
+import { CreateProfileChangeLogDto } from '../dto/profile/create-profile-change-log.dto';
 import { ProfileChangeLog } from '../entities/profile-change-log.entity';
 
 @Controller('profile-change-logs')

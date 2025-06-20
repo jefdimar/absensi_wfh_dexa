@@ -8,7 +8,7 @@ import { AuthService } from '../services/auth.service';
 import { Employee } from '../entities/employee.entity';
 import { ProfileChangeLog } from '../entities/profile-change-log.entity';
 import { ProfileChangeLogService } from '../services/profile-change-log.service';
-import { JwtStrategy } from '../strategies/jwt.strategy';
+import { JwtStrategy } from '../config/strategies/jwt.strategy';
 
 @Module({
   imports: [

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProfileChangeLog } from '../entities/profile-change-log.entity';
-import { CreateProfileChangeLogDto } from '../dto/create-profile-change-log.dto';
+import { CreateProfileChangeLogDto } from '../dto/profile/create-profile-change-log.dto';
 
 @Injectable()
 export class ProfileChangeLogService {

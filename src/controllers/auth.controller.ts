@@ -15,7 +15,7 @@ import {
   AuthResponseDto,
   LoginResponseDto,
 } from '../dto/auth/auth-response.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../config/guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
