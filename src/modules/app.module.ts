@@ -1,13 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ProfileChangeLogController } from '../controllers/profile-change-log.controller';
-import { ProfileChangeLogService } from '../services/profile-change-log.service';
-import { ProfileChangeLog } from '../entities/profile-change-log.entity';
-import { Employee } from '../entities/employee.entity';
-import { AttendanceRecord } from '../entities/attendance-record.entity';
 import { AuthModule } from '../modules/auth.module';
 import { AttendanceModule } from './attendance.module';
+import { ProfileChangeLogModule } from './profile-change-log.module';
 import { getDatabaseConfig } from '../config/databases/database.config';
 
 @Module({
@@ -22,11 +18,11 @@ import { getDatabaseConfig } from '../config/databases/database.config';
         getDatabaseConfig(configService),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([ProfileChangeLog]),
     AuthModule,
     AttendanceModule,
+    ProfileChangeLogModule,
   ],
-  controllers: [ProfileChangeLogController],
-  providers: [ProfileChangeLogService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
