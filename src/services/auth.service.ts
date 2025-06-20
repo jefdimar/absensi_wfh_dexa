@@ -81,19 +81,40 @@ export class AuthService {
       throw new NotFoundException('Employee not found');
     }
 
-    // Log profile changes
+    // Log profile changes BEFORE updating
     for (const [field, newValue] of Object.entries(updateDto)) {
-      if (newValue !== undefined && employee[field] !== newValue) {
-        await this.profileChangeLogService.create({
-          employeeId,
-          changedField: field,
-          oldValue: employee[field]?.toString() || null,
-          newValue: newValue?.toString() || null,
-        });
+      if (newValue !== undefined && newValue !== null) {
+        const currentValue = employee[field];
+
+        // Handle different field mappings
+        let actualField = field;
+        if (field === 'phoneNumber') {
+          actualField = 'phone_number';
+        } else if (field === 'photoUrl') {
+          actualField = 'photo_url';
+        }
+
+        if (currentValue !== newValue) {
+          await this.profileChangeLogService.create({
+            employeeId,
+            changedField: field,
+            oldValue: currentValue?.toString() || null,
+            newValue: newValue?.toString() || null,
+          });
+        }
       }
     }
 
-    Object.assign(employee, updateDto);
+    // Update the employee with explicit field assignment
+    if (updateDto.name !== undefined) employee.name = updateDto.name;
+    if (updateDto.email !== undefined) employee.email = updateDto.email;
+    if (updateDto.position !== undefined)
+      employee.position = updateDto.position;
+    if (updateDto.phoneNumber !== undefined)
+      employee.phoneNumber = updateDto.phoneNumber;
+    if (updateDto.photoUrl !== undefined)
+      employee.photoUrl = updateDto.photoUrl;
+
     const updatedEmployee = await this.employeeRepository.save(employee);
 
     return this.mapToAuthResponse(updatedEmployee);
