@@ -1,0 +1,117 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: absensi_postgres
+    environment:
+      POSTGRES_DB: absensi_wfh_dexa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - absensi_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=absensi_wfh_dexa
+      - JWT_SECRET=secret-jwt
+      - JWT_EXPIRES_IN=24h
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - absensi_network
+    restart: unless-stopped
+
+  # Profile Change Log Service
+  profile-change-log-service:
+    build:
+      context: ./services/profile-change-log-service
+      dockerfile: Dockerfile
+    container_name: profile_change_log_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=absensi_wfh_dexa
+    ports:
+      - '3002:3002'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - absensi_network
+    restart: unless-stopped
+
+  # Attendance Service
+  attendance-service:
+    build:
+      context: ./services/attendance-service
+      dockerfile: Dockerfile
+    container_name: attendance_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=absensi_wfh_dexa
+      - JWT_SECRET=secret-jwt
+      - JWT_EXPIRES_IN=24h
+    ports:
+      - '3003:3003'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - absensi_network
+    restart: unless-stopped
+
+  # Nginx API Gateway (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: absensi_gateway
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - auth-service
+      - profile-change-log-service
+      - attendance-service
+    networks:
+      - absensi_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  absensi_network:
+    driver: bridge

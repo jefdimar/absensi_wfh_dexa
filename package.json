@@ -1,7 +1,7 @@
 {
-  "name": "absensi_wfh_dexa",
-  "version": "0.0.1",
-  "description": "",
+  "name": "absensi-wfh-dexa-microservices",
+  "version": "1.0.0",
+  "description": "Employee presence microservices system",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -12,7 +12,16 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "db:setup": "psql -h localhost -U postgres -c \"CREATE DATABASE IF NOT EXISTS absensi_wfh_dexa;\""
+    "db:setup": "psql -h localhost -U postgres -c \"CREATE DATABASE IF NOT EXISTS absensi_wfh_dexa;\"",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose restart",
+    "dev:auth": "cd services/auth-service && npm run start:dev",
+    "dev:profile": "cd services/profile-change-log-service && npm run start:dev",
+    "dev:attendance": "cd services/attendance-service && npm run start:dev",
+    "install:all": "cd services/auth-service && npm install && cd ../profile-change-log-service && npm install && cd ../attendance-service && npm install"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
