@@ -1,0 +1,60 @@
+{
+  "name": "Absensi WFH Dexa - Environment",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost",
+      "enabled": true
+    },
+    {
+      "key": "auth_service_url", 
+      "value": "http://localhost:3001",
+      "enabled": true
+    },
+    {
+      "key": "profile_log_service_url",
+      "value": "http://localhost:3002", 
+      "enabled": true
+    },
+    {
+      "key": "attendance_service_url",
+      "value": "http://localhost:3003",
+      "enabled": true
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "employee_id",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "test_jwt_token",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "test_employee_id", 
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "current_date",
+      "value": "2025-06-20",
+      "enabled": true
+    },
+    {
+      "key": "current_year",
+      "value": "2025",
+      "enabled": true
+    },
+    {
+      "key": "current_month",
+      "value": "6",
+      "enabled": true
+    }
+  ]
+}
