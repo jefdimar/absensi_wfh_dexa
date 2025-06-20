@@ -3,13 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AttendanceController } from '../controllers/attendance.controller';
 import { AttendanceService } from '../services/attendance.service';
 import { AttendanceRecord } from '../entities/attendance-record.entity';
-import { Employee } from '../entities/employee.entity';
-import { JwtStrategy } from '../config/strategies/jwt.strategy';
+import { AuthModule } from './auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AttendanceRecord, Employee])],
+  imports: [TypeOrmModule.forFeature([AttendanceRecord]), AuthModule],
   controllers: [AttendanceController],
-  providers: [AttendanceService, JwtStrategy],
+  providers: [AttendanceService],
   exports: [AttendanceService],
 })
 export class AttendanceModule {}

@@ -22,7 +22,7 @@ import { getDatabaseConfig } from '../config/databases/database.config';
         getDatabaseConfig(configService),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([ProfileChangeLog, Employee, AttendanceRecord]),
+    TypeOrmModule.forFeature([ProfileChangeLog]),
     AuthModule,
     AttendanceModule,
   ],
