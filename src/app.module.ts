@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ProfileChangeLogController } from './controllers/profile-change-log.controller';
 import { ProfileChangeLogService } from './services/profile-change-log.service';
 import { ProfileChangeLog } from './entities/profile-change-log.entity';
+import { Employee } from './entities/employee.entity';
+import { AuthModule } from './modules/auth.module';
 import { getDatabaseConfig } from './config/database.config';
 
 @Module({
@@ -18,7 +20,8 @@ import { getDatabaseConfig } from './config/database.config';
         getDatabaseConfig(configService),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([ProfileChangeLog]),
+    TypeOrmModule.forFeature([ProfileChangeLog, Employee]),
+    AuthModule,
   ],
   controllers: [ProfileChangeLogController],
   providers: [ProfileChangeLogService],
