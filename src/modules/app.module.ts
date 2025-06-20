@@ -5,7 +5,9 @@ import { ProfileChangeLogController } from '../controllers/profile-change-log.co
 import { ProfileChangeLogService } from '../services/profile-change-log.service';
 import { ProfileChangeLog } from '../entities/profile-change-log.entity';
 import { Employee } from '../entities/employee.entity';
-import { AuthModule } from './auth.module';
+import { AttendanceRecord } from '../entities/attendance-record.entity';
+import { AuthModule } from '../modules/auth.module';
+import { AttendanceModule } from './attendance.module';
 import { getDatabaseConfig } from '../config/databases/database.config';
 
 @Module({
@@ -20,8 +22,9 @@ import { getDatabaseConfig } from '../config/databases/database.config';
         getDatabaseConfig(configService),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([ProfileChangeLog, Employee]),
+    TypeOrmModule.forFeature([ProfileChangeLog, Employee, AttendanceRecord]),
     AuthModule,
+    AttendanceModule,
   ],
   controllers: [ProfileChangeLogController],
   providers: [ProfileChangeLogService],
