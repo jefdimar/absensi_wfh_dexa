@@ -15,7 +15,13 @@ export class ProfileChangeLogService {
     createDto: CreateProfileChangeLogDto,
   ): Promise<ProfileChangeLog> {
     const profileChangeLog = this.profileChangeLogRepository.create(createDto);
-    return await this.profileChangeLogRepository.save(profileChangeLog);
+    const savedLog =
+      await this.profileChangeLogRepository.save(profileChangeLog);
+
+    // Send notification to admin
+    await this.sendNotificationToAdmin(savedLog);
+
+    return savedLog;
   }
 
   async findByEmployeeId(employeeId: string): Promise<ProfileChangeLog[]> {
@@ -29,5 +35,35 @@ export class ProfileChangeLogService {
     return await this.profileChangeLogRepository.find({
       order: { changedAt: 'DESC' },
     });
+  }
+
+  private async sendNotificationToAdmin(
+    profileChangeLog: ProfileChangeLog,
+  ): Promise<void> {
+    try {
+      const message = `Profile updated: ${profileChangeLog.changedField} changed from "${profileChangeLog.oldValue}" to "${profileChangeLog.newValue}" for employee ${profileChangeLog.employeeId}`;
+
+      const notificationData = {
+        employeeId: profileChangeLog.employeeId,
+        message: message,
+      };
+
+      const response = await fetch(
+        'http://notification-service:3004/notifications/create',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(notificationData),
+        },
+      );
+
+      if (!response.ok) {
+        console.error('Failed to send notification:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
   }
 }
