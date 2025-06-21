@@ -11,7 +11,6 @@ import { AppController } from './controllers/app.controller';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -23,6 +22,5 @@ import { AppController } from './controllers/app.controller';
   ],
   controllers: [AppController, NotificationController],
   providers: [NotificationService],
-  exports: [NotificationService],
 })
 export class NotificationModule {}
