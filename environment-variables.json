@@ -22,6 +22,11 @@
       "enabled": true
     },
     {
+      "key": "notification_service_url",
+      "value": "http://localhost:3004",
+      "enabled": true
+    },
+    {
       "key": "jwt_token",
       "value": "",
       "enabled": true
@@ -54,6 +59,16 @@
     {
       "key": "current_month",
       "value": "6",
+      "enabled": true
+    },
+    {
+      "key": "notification_id",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "test_notification_id",
+      "value": "",
       "enabled": true
     }
   ]

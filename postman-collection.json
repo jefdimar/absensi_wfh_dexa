@@ -37,6 +37,11 @@
       "type": "string"
     },
     {
+      "key": "notification_service_url",
+      "value": "http://localhost:3004",
+      "type": "string"
+    },
+    {
       "key": "jwt_token",
       "value": "",
       "type": "string"
@@ -85,6 +90,32 @@
             "url": {
               "raw": "{{attendance_service_url}}/health",
               "host": ["{{attendance_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{auth_service_url}}/health",
+              "host": ["{{auth_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notification Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notification_service_url}}/health",
+              "host": ["{{notification_service_url}}"],
               "path": ["health"]
             }
           },
@@ -306,6 +337,72 @@
               "raw": "{{base_url}}/profile-change-logs",
               "host": ["{{base_url}}"],
               "path": ["profile-change-logs"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📢 Notification Service",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/unread",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "unread"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "{{notification_id}}", "read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Manual Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employee_id}}\",\n  \"message\": \"Manual test notification for employee profile update\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "create"]
             }
           },
           "response": []
@@ -690,6 +787,19 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Notification Service - Direct Get All",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notification_service_url}}/notifications",
+              "host": ["{{notification_service_url}}"],
+              "path": ["notifications"]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -833,7 +943,10 @@
                       "pm.test('Profile data updated', function () {",
                       "    const response = pm.response.json();",
                       "    pm.expect(response.position).to.eql('Senior Test Engineer');",
-                      "});"
+                      "});",
+                      "",
+                      "// Wait a moment for notification to be created",
+                      "setTimeout(() => {}, 1000);"
                     ]
                   }
                 }
@@ -905,6 +1018,41 @@
                   "raw": "{{base_url}}/profile-change-logs/employee/{{test_employee_id}}",
                   "host": ["{{base_url}}"],
                   "path": ["profile-change-logs", "employee", "{{test_employee_id}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5.1. Verify Notification Created",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Notifications retrieved', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Notification created for profile change', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response).to.be.an('array');",
+                      "    const employeeNotifications = response.filter(n => n.employeeId === pm.collectionVariables.get('test_employee_id'));",
+                      "    pm.expect(employeeNotifications.length).to.be.greaterThan(0);",
+                      "    if (employeeNotifications.length > 0) {",
+                      "        pm.collectionVariables.set('test_notification_id', employeeNotifications[0].id);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/notifications",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "notifications"]
                 }
               },
               "response": []
@@ -1135,6 +1283,71 @@
                   "raw": "{{base_url}}/profile-change-logs/employee/invalid-uuid",
                   "host": ["{{base_url}}"],
                   "path": ["profile-change-logs", "employee", "invalid-uuid"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Notification Tests",
+          "item": [
+            {
+              "name": "Get Unread Notifications",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Unread notifications retrieved', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response is array', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/notifications/unread",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "notifications", "unread"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Notification as Read",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Notification marked as read', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Notification read status updated', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.read).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/notifications/{{test_notification_id}}/read",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "notifications", "{{test_notification_id}}", "read"]
                 }
               },
               "response": []
