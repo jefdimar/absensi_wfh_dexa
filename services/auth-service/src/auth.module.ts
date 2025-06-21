@@ -8,6 +8,7 @@ import { AuthService } from './services/auth.service';
 import { Employee } from './entities/employee.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { getDatabaseConfig } from './config/database.config';
+import { AppController } from './controllers/app.controller';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { getDatabaseConfig } from './config/database.config';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AppController],
   providers: [AuthService, JwtStrategy],
 })
 export class AuthModule {}
