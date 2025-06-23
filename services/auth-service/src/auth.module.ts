@@ -7,6 +7,8 @@ import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { Employee } from './entities/employee.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtAuthGuard } from './config/guards/jwt-auth.guard';
+import { AdminGuard } from './config/guards/admin.guard';
 import { getDatabaseConfig } from './config/database.config';
 import { AppController } from './controllers/app.controller';
 
@@ -34,6 +36,7 @@ import { AppController } from './controllers/app.controller';
     }),
   ],
   controllers: [AuthController, AppController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, AdminGuard],
+  exports: [JwtAuthGuard, AdminGuard], // Export guards for use in other modules if needed
 })
 export class AuthModule {}

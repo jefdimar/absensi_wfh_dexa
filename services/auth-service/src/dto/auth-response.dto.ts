@@ -14,3 +14,11 @@ export class LoginResponseDto {
   employee: AuthResponseDto;
   accessToken: string;
 }
+
+export class PaginatedEmployeesDto {
+  employees: AuthResponseDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}

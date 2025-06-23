@@ -50,7 +50,13 @@
       "key": "employee_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "admin_jwt_token",
+      "value": "",
+      "type": "string"
     }
+
   ],
   "item": [
     {
@@ -254,6 +260,98 @@
               "raw": "{{base_url}}/auth/profile",
               "host": ["{{base_url}}"],
               "path": ["auth", "profile"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Employees (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/employees?page=1&limit=10&search=",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "employees"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee by ID (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Employee Name\",\n  \"email\": \"updated.email@example.com\",\n  \"position\": \"Updated Position\",\n  \"phoneNumber\": \"9876543210\",\n  \"role\": \"employee\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/employees/{{employee_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "employees", "{{employee_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employee by ID (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/employees/{{employee_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "employees", "{{employee_id}}"]
             }
           },
           "response": []

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
@@ -13,7 +13,12 @@ import { Employee } from '../entities/employee.entity';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
-import { AuthResponseDto, LoginResponseDto } from '../dto/auth-response.dto';
+import { UpdateEmployeeDto } from '../dto/update-employee.dto';
+import {
+  AuthResponseDto,
+  LoginResponseDto,
+  PaginatedEmployeesDto,
+} from '../dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +44,7 @@ export class AuthService {
     const employee = this.employeeRepository.create({
       ...registerDto,
       passwordHash,
-      role: registerDto.role || 'employee', // Default to 'employee' if not provided
+      role: registerDto.role || 'employee',
     });
 
     const savedEmployee = await this.employeeRepository.save(employee);
@@ -148,6 +153,115 @@ export class AuthService {
     }
 
     return this.mapToAuthResponse(employee);
+  }
+
+  // New methods for employee management
+  async getAllEmployees(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<PaginatedEmployeesDto> {
+    const skip = (page - 1) * limit;
+
+    const whereCondition = search
+      ? [
+          { name: Like(`%${search}%`) },
+          { email: Like(`%${search}%`) },
+          { position: Like(`%${search}%`) },
+        ]
+      : {};
+
+    const [employees, total] = await this.employeeRepository.findAndCount({
+      where: whereCondition,
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      employees: employees.map((emp) => this.mapToAuthResponse(emp)),
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  async updateEmployee(
+    employeeId: string,
+    updateDto: UpdateEmployeeDto,
+  ): Promise<AuthResponseDto> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Employee not found');
+    }
+
+    // Check if email is being updated and if it already exists
+    if (updateDto.email && updateDto.email !== employee.email) {
+      const existingEmployee = await this.employeeRepository.findOne({
+        where: { email: updateDto.email },
+      });
+
+      if (existingEmployee) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
+    // Log profile changes via HTTP call (similar to updateProfile)
+    for (const [field, newValue] of Object.entries(updateDto)) {
+      if (newValue !== undefined && employee[field] !== newValue) {
+        try {
+          const profileChangeLogUrl = this.configService.get(
+            'PROFILE_CHANGE_LOG_SERVICE_URL',
+            'http://profile_change_log_service:3002',
+          );
+
+          const response = await fetch(
+            `${profileChangeLogUrl}/profile-change-logs`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                employeeId,
+                changedField: field,
+                oldValue: employee[field]?.toString() || null,
+                newValue: newValue?.toString() || null,
+              }),
+            },
+          );
+
+          if (!response.ok) {
+            console.error('Failed to log profile change:', response.status);
+          }
+        } catch (error) {
+          console.error('Failed to log profile change:', error.message);
+        }
+      }
+    }
+
+    Object.assign(employee, updateDto);
+    const updatedEmployee = await this.employeeRepository.save(employee);
+
+    return this.mapToAuthResponse(updatedEmployee);
+  }
+
+  async deleteEmployee(employeeId: string): Promise<void> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Employee not found');
+    }
+
+    await this.employeeRepository.remove(employee);
   }
 
   private mapToAuthResponse(employee: Employee): AuthResponseDto {
