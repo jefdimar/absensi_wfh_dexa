@@ -5,6 +5,7 @@ import {
   MaxLength,
   IsOptional,
   Matches,
+  IsIn,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -37,4 +38,9 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   photoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['employee', 'admin'])
+  role?: string;
 }

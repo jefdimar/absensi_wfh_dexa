@@ -1,15 +1,10 @@
-import { IsString, MaxLength, IsOptional, IsEmail } from 'class-validator';
+import { IsString, MaxLength, IsOptional, IsIn } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
   name?: string;
-
-  @IsOptional()
-  @IsEmail()
-  @MaxLength(100)
-  email?: string;
 
   @IsOptional()
   @IsString()
@@ -24,4 +19,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   photoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['employee', 'admin'])
+  role?: string;
 }

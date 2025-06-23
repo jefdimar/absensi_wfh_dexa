@@ -33,6 +33,9 @@ export class Employee {
   @Column('varchar', { length: 20, nullable: true, name: 'phone_number' })
   phoneNumber: string;
 
+  @Column('varchar', { length: 50, default: 'employee' })
+  role: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

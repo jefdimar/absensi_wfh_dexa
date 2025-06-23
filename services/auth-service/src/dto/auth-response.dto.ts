@@ -5,6 +5,7 @@ export class AuthResponseDto {
   position: string;
   phoneNumber: string;
   photoUrl: string;
+  role: string;
   createdAt: Date;
   updatedAt: Date;
 }

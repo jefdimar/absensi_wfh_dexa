@@ -13,10 +13,7 @@ import { Employee } from '../entities/employee.entity';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
-import {
-  AuthResponseDto,
-  LoginResponseDto,
-} from '../dto/auth-response.dto';
+import { AuthResponseDto, LoginResponseDto } from '../dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -42,6 +39,7 @@ export class AuthService {
     const employee = this.employeeRepository.create({
       ...registerDto,
       passwordHash,
+      role: registerDto.role || 'employee', // Default to 'employee' if not provided
     });
 
     const savedEmployee = await this.employeeRepository.save(employee);
@@ -60,7 +58,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: employee.id, email: employee.email };
+    const payload = {
+      sub: employee.id,
+      email: employee.email,
+      role: employee.role,
+      employeeId: employee.id,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     return {
@@ -87,27 +90,36 @@ export class AuthService {
         try {
           const profileChangeLogUrl = this.configService.get(
             'PROFILE_CHANGE_LOG_SERVICE_URL',
-            'http://profile_change_log_service:3002'
+            'http://profile_change_log_service:3002',
           );
-          
-          console.log(`Logging profile change: ${field} from "${employee[field]}" to "${newValue}"`);
+
+          console.log(
+            `Logging profile change: ${field} from "${employee[field]}" to "${newValue}"`,
+          );
           console.log(`Profile Change Log Service URL: ${profileChangeLogUrl}`);
-          
-          const response = await fetch(`${profileChangeLogUrl}/profile-change-logs`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+
+          const response = await fetch(
+            `${profileChangeLogUrl}/profile-change-logs`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                employeeId,
+                changedField: field,
+                oldValue: employee[field]?.toString() || null,
+                newValue: newValue?.toString() || null,
+              }),
             },
-            body: JSON.stringify({
-              employeeId,
-              changedField: field,
-              oldValue: employee[field]?.toString() || null,
-              newValue: newValue?.toString() || null,
-            }),
-          });
+          );
 
           if (!response.ok) {
-            console.error('Failed to log profile change:', response.status, response.statusText);
+            console.error(
+              'Failed to log profile change:',
+              response.status,
+              response.statusText,
+            );
             const errorText = await response.text();
             console.error('Error response:', errorText);
           } else {
@@ -146,6 +158,7 @@ export class AuthService {
       position: employee.position,
       phoneNumber: employee.phoneNumber,
       photoUrl: employee.photoUrl,
+      role: employee.role,
       createdAt: employee.createdAt,
       updatedAt: employee.updatedAt,
     };
