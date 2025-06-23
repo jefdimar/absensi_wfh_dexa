@@ -14,6 +14,9 @@ import {
   AttendanceResponseDto,
   AttendanceSummaryDto,
   AttendanceStatsDto,
+  DateRangeStatsDto,
+  DailyStatsDto,
+  PaginatedAttendanceDto,
 } from '../dto/attendance-response.dto';
 
 @Injectable()
@@ -125,6 +128,7 @@ export class AttendanceService {
     const savedAttendance = await this.attendanceRepository.save(attendance);
     return this.mapToResponse(savedAttendance);
   }
+
   async getAttendanceByEmployee(
     employeeId: string,
     startDate?: string,
@@ -264,6 +268,125 @@ export class AttendanceService {
       incompleteDays,
       absentDays,
       averageWorkingHours,
+    };
+  }
+
+  // NEW METHOD: Get date range statistics
+  async getDateRangeStats(
+    startDate: string,
+    endDate: string,
+  ): Promise<DateRangeStatsDto> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Set end date to end of day
+    end.setHours(23, 59, 59, 999);
+
+    const records = await this.attendanceRepository.find({
+      where: {
+        timestamp: Between(start, end),
+      },
+      order: { timestamp: 'ASC' },
+    });
+
+    const totalRecords = records.length;
+    const totalCheckIns = records.filter(
+      (r) => r.status === AttendanceStatus.CHECK_IN,
+    ).length;
+    const totalCheckOuts = records.filter(
+      (r) => r.status === AttendanceStatus.CHECK_OUT,
+    ).length;
+    const uniqueEmployees = new Set(records.map((r) => r.employeeId)).size;
+
+    // Group by date for daily breakdown
+    const dailyMap = new Map<
+      string,
+      { checkIns: number; checkOuts: number; employees: Set<string> }
+    >();
+
+    records.forEach((record) => {
+      const dateKey = record.timestamp.toISOString().split('T')[0];
+      if (!dailyMap.has(dateKey)) {
+        dailyMap.set(dateKey, {
+          checkIns: 0,
+          checkOuts: 0,
+          employees: new Set(),
+        });
+      }
+
+      const dayData = dailyMap.get(dateKey)!;
+      dayData.employees.add(record.employeeId);
+
+      if (record.status === AttendanceStatus.CHECK_IN) {
+        dayData.checkIns++;
+      } else {
+        dayData.checkOuts++;
+      }
+    });
+
+    const dailyBreakdown: DailyStatsDto[] = Array.from(dailyMap.entries()).map(
+      ([date, data]) => ({
+        date,
+        checkIns: data.checkIns,
+        checkOuts: data.checkOuts,
+        uniqueEmployees: data.employees.size,
+      }),
+    );
+
+    return {
+      startDate,
+      endDate,
+      totalRecords,
+      totalCheckIns,
+      totalCheckOuts,
+      uniqueEmployees,
+      dailyBreakdown,
+    };
+  }
+
+  // NEW METHOD: Get all attendance records with pagination and date filter
+  async getAllAttendanceRecords(
+    page: number = 1,
+    limit: number = 10,
+    date?: string,
+  ): Promise<PaginatedAttendanceDto> {
+    const skip = (page - 1) * limit;
+    let whereCondition: any = {};
+
+    if (date) {
+      const targetDate = new Date(date);
+      const startOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
+      const endOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+        23,
+        59,
+        59,
+      );
+
+      whereCondition.timestamp = Between(startOfDay, endOfDay);
+    }
+
+    const [records, total] = await this.attendanceRepository.findAndCount({
+      where: whereCondition,
+      order: { timestamp: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: records.map((record) => this.mapToResponse(record)),
+      total,
+      page,
+      limit,
+      totalPages,
     };
   }
 

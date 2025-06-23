@@ -16,6 +16,8 @@ import {
   AttendanceResponseDto,
   AttendanceSummaryDto,
   AttendanceStatsDto,
+  DateRangeStatsDto,
+  PaginatedAttendanceDto,
 } from '../dto/attendance-response.dto';
 import { JwtAuthGuard } from '../config/guards/jwt-auth.guard';
 
@@ -126,6 +128,32 @@ export class AttendanceController {
       employeeId,
       year,
       month,
+    );
+  }
+
+  // NEW ROUTE 1: GET /attendance/stats?startDate=2025-06-23&endDate=2025-06-23
+  @Get('stats')
+  async getDateRangeStats(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<DateRangeStatsDto> {
+    if (!startDate || !endDate) {
+      throw new Error('Both startDate and endDate are required');
+    }
+    return await this.attendanceService.getDateRangeStats(startDate, endDate);
+  }
+
+  // NEW ROUTE 2: GET /attendance/all?page=1&limit=10&date=2025-06-23
+  @Get('all')
+  async getAllAttendanceRecords(
+    @Query('page', ParseIntPipe) page: number = 1,
+    @Query('limit', ParseIntPipe) limit: number = 10,
+    @Query('date') date?: string,
+  ): Promise<PaginatedAttendanceDto> {
+    return await this.attendanceService.getAllAttendanceRecords(
+      page,
+      limit,
+      date,
     );
   }
 }
