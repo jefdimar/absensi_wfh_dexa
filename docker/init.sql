@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS employees (
     photo_url TEXT,
     position VARCHAR(100),
     phone_number VARCHAR(20),
+    role VARCHAR(50) DEFAULT 'employee',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -43,6 +44,7 @@ CREATE TABLE admin_notifications (
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
+CREATE INDEX IF NOT EXISTS idx_employees_role ON employees(role);
 CREATE INDEX IF NOT EXISTS idx_profile_change_logs_employee_id ON profile_change_logs(employee_id);
 CREATE INDEX IF NOT EXISTS idx_profile_change_logs_changed_at ON profile_change_logs(changed_at);
 CREATE INDEX IF NOT EXISTS idx_attendance_employee_id ON attendance_records(employee_id);
