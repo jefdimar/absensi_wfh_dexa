@@ -9,6 +9,7 @@ import {
   Request,
   ParseUUIDPipe,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AttendanceService } from '../services/attendance.service';
 import { CreateAttendanceDto } from '../dto/create-attendance.dto';
@@ -20,6 +21,7 @@ import {
   PaginatedAttendanceDto,
 } from '../dto/attendance-response.dto';
 import { JwtAuthGuard } from '../config/guards/jwt-auth.guard';
+import { AdminGuard } from '../config/guards/admin.guard';
 
 @Controller('attendance')
 @UseGuards(JwtAuthGuard)
@@ -78,7 +80,12 @@ export class AttendanceController {
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Request() req,
   ): Promise<AttendanceResponseDto[]> {
+    // Only allow viewing own records unless user is admin
+    if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
+      throw new ForbiddenException('You can only view your own attendance records');
+    }
     return await this.attendanceService.getAttendanceByEmployee(
       employeeId,
       startDate,
@@ -101,7 +108,12 @@ export class AttendanceController {
   async getEmployeeDailySummary(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('date') date: string,
+    @Request() req,
   ): Promise<AttendanceSummaryDto> {
+    // Only allow viewing own records unless user is admin
+    if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
+      throw new ForbiddenException('You can only view your own attendance summary');
+    }
     return await this.attendanceService.getDailySummary(employeeId, date);
   }
 
@@ -123,7 +135,12 @@ export class AttendanceController {
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('year', ParseIntPipe) year: number,
     @Query('month', ParseIntPipe) month: number,
+    @Request() req,
   ): Promise<AttendanceStatsDto> {
+    // Only allow viewing own records unless user is admin
+    if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
+      throw new ForbiddenException('You can only view your own attendance stats');
+    }
     return await this.attendanceService.getMonthlyStats(
       employeeId,
       year,
@@ -132,6 +149,8 @@ export class AttendanceController {
   }
 
   // NEW ROUTE 1: GET /attendance/stats?startDate=2025-06-23&endDate=2025-06-23
+  // Admin only - views all employees' attendance
+  @UseGuards(AdminGuard)
   @Get('stats')
   async getDateRangeStats(
     @Query('startDate') startDate: string,
@@ -144,6 +163,8 @@ export class AttendanceController {
   }
 
   // NEW ROUTE 2: GET /attendance/all?page=1&limit=10&date=2025-06-23
+  // Admin only - views all employees' attendance
+  @UseGuards(AdminGuard)
   @Get('all')
   async getAllAttendanceRecords(
     @Query('page', ParseIntPipe) page: number = 1,

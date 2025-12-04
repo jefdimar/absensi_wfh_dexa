@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
@@ -56,10 +56,12 @@ export class AuthService {
       where: { email: loginDto.email },
     });
 
-    if (
-      !employee ||
-      !(await bcrypt.compare(loginDto.password, employee.passwordHash))
-    ) {
+    // Always perform bcrypt comparison to prevent timing attacks
+    // Use a dummy hash if employee doesn't exist
+    const passwordHash = employee?.passwordHash || '$2a$12$invalidhashtopreventtimingattack1234567890';
+    const isValid = await bcrypt.compare(loginDto.password, passwordHash);
+
+    if (!employee || !isValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -163,11 +165,14 @@ export class AuthService {
   ): Promise<PaginatedEmployeesDto> {
     const skip = (page - 1) * limit;
 
+    // Escape special characters in search to prevent SQL injection
+    const escapedSearch = search ? search.replace(/[%_]/g, '\\$&') : '';
+
     const whereCondition = search
       ? [
-          { name: Like(`%${search}%`) },
-          { email: Like(`%${search}%`) },
-          { position: Like(`%${search}%`) },
+          { name: ILike(`%${escapedSearch}%`) },
+          { email: ILike(`%${escapedSearch}%`) },
+          { position: ILike(`%${escapedSearch}%`) },
         ]
       : {};
 

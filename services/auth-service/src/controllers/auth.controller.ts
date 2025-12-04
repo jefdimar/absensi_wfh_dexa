@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   ParseIntPipe,
   DefaultValuePipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
@@ -79,7 +80,12 @@ export class AuthController {
   @Delete('employees/:id')
   async deleteEmployee(
     @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
   ): Promise<{ message: string }> {
+    // Prevent admins from deleting their own account
+    if (id === req.user.employeeId) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
     await this.authService.deleteEmployee(id);
     return { message: 'Employee deleted successfully' };
   }
