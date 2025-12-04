@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { ProfileChangeLog } from '../entities/profile-change-log.entity';
 import { CreateProfileChangeLogDto } from '../dto/create-profile-change-log.dto';
 
@@ -9,6 +10,7 @@ export class ProfileChangeLogService {
   constructor(
     @InjectRepository(ProfileChangeLog)
     private readonly profileChangeLogRepository: Repository<ProfileChangeLog>,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(
@@ -48,8 +50,14 @@ export class ProfileChangeLogService {
         message: message,
       };
 
+      // Get notification service URL from config
+      const notificationServiceUrl = this.configService.get(
+        'NOTIFICATION_SERVICE_URL',
+        'http://notification-service:3004',
+      );
+
       const response = await fetch(
-        'http://notification-service:3004/notifications/create',
+        `${notificationServiceUrl}/notifications/create`,
         {
           method: 'POST',
           headers: {

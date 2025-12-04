@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AdminNotification } from '../entities/admin-notification.entity';
@@ -35,7 +35,13 @@ export class NotificationService {
   }
 
   async markAsRead(id: string): Promise<AdminNotification> {
-    await this.notificationRepository.update(id, { read: true });
-    return await this.notificationRepository.findOne({ where: { id } });
+    const notification = await this.notificationRepository.findOne({ where: { id } });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    notification.read = true;
+    return await this.notificationRepository.save(notification);
   }
 }

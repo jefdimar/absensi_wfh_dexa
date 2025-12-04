@@ -1,4 +1,4 @@
-import { IsString, MaxLength, IsOptional, IsIn } from 'class-validator';
+import { IsString, MaxLength, IsOptional } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -20,8 +20,6 @@ export class UpdateProfileDto {
   @IsString()
   photoUrl?: string;
 
-  @IsOptional()
-  @IsString()
-  @IsIn(['employee', 'admin'])
-  role?: string;
+  // Role field removed - users cannot escalate their own privileges
+  // Only admins can change roles via UpdateEmployeeDto
 }

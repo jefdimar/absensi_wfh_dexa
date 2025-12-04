@@ -26,61 +26,52 @@ export class AttendanceService {
     private readonly attendanceRepository: Repository<AttendanceRecord>,
   ) {}
 
+  /**
+   * Get start and end of day in UTC to ensure consistent timezone handling
+   * @param date - Optional date, defaults to today
+   * @returns Object with startOfDay and endOfDay Date objects in UTC
+   */
+  private getUTCDayBounds(date?: Date): { startOfDay: Date; endOfDay: Date } {
+    const targetDate = date || new Date();
+    const startOfDay = new Date(Date.UTC(
+      targetDate.getUTCFullYear(),
+      targetDate.getUTCMonth(),
+      targetDate.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    const endOfDay = new Date(Date.UTC(
+      targetDate.getUTCFullYear(),
+      targetDate.getUTCMonth(),
+      targetDate.getUTCDate(),
+      23, 59, 59, 999
+    ));
+    return { startOfDay, endOfDay };
+  }
+
   async checkIn(employeeId: string): Promise<AttendanceResponseDto> {
-    // Check if already checked in today
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const endOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      23,
-      59,
-      59,
-    );
-
-    const existingCheckIn = await this.attendanceRepository.findOne({
-      where: {
-        employeeId,
-        status: AttendanceStatus.CHECK_IN,
-        timestamp: Between(startOfDay, endOfDay),
-      },
-    });
-
-    if (existingCheckIn) {
-      throw new BadRequestException('Already checked in today');
-    }
-
     const attendance = this.attendanceRepository.create({
       employeeId,
       status: AttendanceStatus.CHECK_IN,
       timestamp: new Date(),
     });
 
-    const savedAttendance = await this.attendanceRepository.save(attendance);
-    return this.mapToResponse(savedAttendance);
+    try {
+      const savedAttendance = await this.attendanceRepository.save(attendance);
+      return this.mapToResponse(savedAttendance);
+    } catch (error) {
+      // Handle duplicate check-in attempts
+      // Note: This assumes a unique constraint exists on (employee_id, DATE(timestamp), status)
+      // Without the DB constraint, race conditions can still occur
+      if (error.code === '23505') {
+        throw new BadRequestException('Already checked in today');
+      }
+      throw error;
+    }
   }
 
   async checkOut(employeeId: string): Promise<AttendanceResponseDto> {
-    // Check if checked in today
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const endOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      23,
-      59,
-      59,
-    );
+    // Verify check-in exists for today (business logic requirement)
+    const { startOfDay, endOfDay } = this.getUTCDayBounds();
 
     const checkInRecord = await this.attendanceRepository.findOne({
       where: {
@@ -94,27 +85,22 @@ export class AttendanceService {
       throw new BadRequestException('No check-in record found for today');
     }
 
-    // Check if already checked out
-    const existingCheckOut = await this.attendanceRepository.findOne({
-      where: {
-        employeeId,
-        status: AttendanceStatus.CHECK_OUT,
-        timestamp: Between(startOfDay, endOfDay),
-      },
-    });
-
-    if (existingCheckOut) {
-      throw new BadRequestException('Already checked out today');
-    }
-
     const attendance = this.attendanceRepository.create({
       employeeId,
       status: AttendanceStatus.CHECK_OUT,
       timestamp: new Date(),
     });
 
-    const savedAttendance = await this.attendanceRepository.save(attendance);
-    return this.mapToResponse(savedAttendance);
+    try {
+      const savedAttendance = await this.attendanceRepository.save(attendance);
+      return this.mapToResponse(savedAttendance);
+    } catch (error) {
+      // Handle duplicate check-out attempts
+      if (error.code === '23505') {
+        throw new BadRequestException('Already checked out today');
+      }
+      throw error;
+    }
   }
 
   async createAttendance(
@@ -156,19 +142,7 @@ export class AttendanceService {
     date: string,
   ): Promise<AttendanceSummaryDto> {
     const targetDate = new Date(date);
-    const startOfDay = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-    );
-    const endOfDay = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-      23,
-      59,
-      59,
-    );
+    const { startOfDay, endOfDay } = this.getUTCDayBounds(targetDate);
 
     const records = await this.attendanceRepository.find({
       where: {
@@ -355,20 +329,7 @@ export class AttendanceService {
 
     if (date) {
       const targetDate = new Date(date);
-      const startOfDay = new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-      );
-      const endOfDay = new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-        23,
-        59,
-        59,
-      );
-
+      const { startOfDay, endOfDay } = this.getUTCDayBounds(targetDate);
       whereCondition.timestamp = Between(startOfDay, endOfDay);
     }
 

@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   ParseIntPipe,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { AttendanceService } from '../services/attendance.service';
 import { CreateAttendanceDto } from '../dto/create-attendance.dto';
@@ -27,6 +28,28 @@ import { AdminGuard } from '../config/guards/admin.guard';
 @UseGuards(JwtAuthGuard)
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
+
+  /**
+   * Validates date string format and ensures it's a valid date
+   * @param date - Date string to validate (expected format: YYYY-MM-DD)
+   * @param fieldName - Name of the field for error message
+   */
+  private validateDateString(date: string, fieldName: string = 'date'): void {
+    if (!date) {
+      throw new BadRequestException(`${fieldName} is required`);
+    }
+
+    // Check format YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException(`${fieldName} must be in YYYY-MM-DD format`);
+    }
+
+    // Check if it's a valid date
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException(`${fieldName} is not a valid date`);
+    }
+  }
 
   @Get()
   getHello(): string {
@@ -98,6 +121,7 @@ export class AttendanceController {
     @Request() req,
     @Query('date') date: string,
   ): Promise<AttendanceSummaryDto> {
+    this.validateDateString(date);
     return await this.attendanceService.getDailySummary(
       req.user.employeeId,
       date,
@@ -110,6 +134,7 @@ export class AttendanceController {
     @Query('date') date: string,
     @Request() req,
   ): Promise<AttendanceSummaryDto> {
+    this.validateDateString(date);
     // Only allow viewing own records unless user is admin
     if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
       throw new ForbiddenException('You can only view your own attendance summary');
@@ -156,9 +181,8 @@ export class AttendanceController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ): Promise<DateRangeStatsDto> {
-    if (!startDate || !endDate) {
-      throw new Error('Both startDate and endDate are required');
-    }
+    this.validateDateString(startDate, 'startDate');
+    this.validateDateString(endDate, 'endDate');
     return await this.attendanceService.getDateRangeStats(startDate, endDate);
   }
 
@@ -171,6 +195,10 @@ export class AttendanceController {
     @Query('limit', ParseIntPipe) limit: number = 10,
     @Query('date') date?: string,
   ): Promise<PaginatedAttendanceDto> {
+    // Validate date if provided
+    if (date) {
+      this.validateDateString(date);
+    }
     return await this.attendanceService.getAllAttendanceRecords(
       page,
       limit,
