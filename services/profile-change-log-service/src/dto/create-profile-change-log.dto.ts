@@ -1,10 +1,12 @@
-import { IsUUID, IsString, MaxLength, IsOptional } from 'class-validator';
+import { IsUUID, IsString, MaxLength, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class CreateProfileChangeLogDto {
   @IsUUID()
+  @IsNotEmpty()
   employeeId: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(50)
   changedField: string;
 

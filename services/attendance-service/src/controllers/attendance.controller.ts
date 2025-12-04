@@ -9,6 +9,8 @@ import {
   Request,
   ParseUUIDPipe,
   ParseIntPipe,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { AttendanceService } from '../services/attendance.service';
 import { CreateAttendanceDto } from '../dto/create-attendance.dto';
@@ -20,11 +22,51 @@ import {
   PaginatedAttendanceDto,
 } from '../dto/attendance-response.dto';
 import { JwtAuthGuard } from '../config/guards/jwt-auth.guard';
+import { AdminGuard } from '../config/guards/admin.guard';
 
 @Controller('attendance')
 @UseGuards(JwtAuthGuard)
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
+
+  /**
+   * Validates date string format and ensures it's a valid date
+   * @param date - Date string to validate (expected format: YYYY-MM-DD)
+   * @param fieldName - Name of the field for error message
+   */
+  private validateDateString(date: string, fieldName: string = 'date'): void {
+    if (!date) {
+      throw new BadRequestException(`${fieldName} is required`);
+    }
+
+    // Check format YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException(`${fieldName} must be in YYYY-MM-DD format`);
+    }
+
+    // Check if it's a valid date
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException(`${fieldName} is not a valid date`);
+    }
+  }
+
+  /**
+   * Validates pagination parameters
+   * @param page - Page number (must be >= 1)
+   * @param limit - Items per page (must be between 1 and 100)
+   */
+  private validatePagination(page: number, limit: number): void {
+    if (page < 1) {
+      throw new BadRequestException('Page must be greater than or equal to 1');
+    }
+    if (limit < 1) {
+      throw new BadRequestException('Limit must be greater than or equal to 1');
+    }
+    if (limit > 100) {
+      throw new BadRequestException('Limit cannot exceed 100');
+    }
+  }
 
   @Get()
   getHello(): string {
@@ -78,7 +120,12 @@ export class AttendanceController {
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Request() req,
   ): Promise<AttendanceResponseDto[]> {
+    // Only allow viewing own records unless user is admin
+    if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
+      throw new ForbiddenException('You can only view your own attendance records');
+    }
     return await this.attendanceService.getAttendanceByEmployee(
       employeeId,
       startDate,
@@ -91,6 +138,7 @@ export class AttendanceController {
     @Request() req,
     @Query('date') date: string,
   ): Promise<AttendanceSummaryDto> {
+    this.validateDateString(date);
     return await this.attendanceService.getDailySummary(
       req.user.employeeId,
       date,
@@ -101,7 +149,13 @@ export class AttendanceController {
   async getEmployeeDailySummary(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('date') date: string,
+    @Request() req,
   ): Promise<AttendanceSummaryDto> {
+    this.validateDateString(date);
+    // Only allow viewing own records unless user is admin
+    if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
+      throw new ForbiddenException('You can only view your own attendance summary');
+    }
     return await this.attendanceService.getDailySummary(employeeId, date);
   }
 
@@ -123,7 +177,12 @@ export class AttendanceController {
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('year', ParseIntPipe) year: number,
     @Query('month', ParseIntPipe) month: number,
+    @Request() req,
   ): Promise<AttendanceStatsDto> {
+    // Only allow viewing own records unless user is admin
+    if (req.user.role !== 'admin' && req.user.employeeId !== employeeId) {
+      throw new ForbiddenException('You can only view your own attendance stats');
+    }
     return await this.attendanceService.getMonthlyStats(
       employeeId,
       year,
@@ -132,24 +191,34 @@ export class AttendanceController {
   }
 
   // NEW ROUTE 1: GET /attendance/stats?startDate=2025-06-23&endDate=2025-06-23
+  // Admin only - views all employees' attendance
+  @UseGuards(AdminGuard)
   @Get('stats')
   async getDateRangeStats(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ): Promise<DateRangeStatsDto> {
-    if (!startDate || !endDate) {
-      throw new Error('Both startDate and endDate are required');
-    }
+    this.validateDateString(startDate, 'startDate');
+    this.validateDateString(endDate, 'endDate');
     return await this.attendanceService.getDateRangeStats(startDate, endDate);
   }
 
   // NEW ROUTE 2: GET /attendance/all?page=1&limit=10&date=2025-06-23
+  // Admin only - views all employees' attendance
+  @UseGuards(AdminGuard)
   @Get('all')
   async getAllAttendanceRecords(
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
     @Query('date') date?: string,
   ): Promise<PaginatedAttendanceDto> {
+    // Validate pagination parameters
+    this.validatePagination(page, limit);
+
+    // Validate date if provided
+    if (date) {
+      this.validateDateString(date);
+    }
     return await this.attendanceService.getAllAttendanceRecords(
       page,
       limit,

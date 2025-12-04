@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
@@ -30,14 +30,6 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-    const existingEmployee = await this.employeeRepository.findOne({
-      where: { email: registerDto.email },
-    });
-
-    if (existingEmployee) {
-      throw new ConflictException('Email already exists');
-    }
-
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
 
@@ -47,8 +39,16 @@ export class AuthService {
       role: registerDto.role || 'employee',
     });
 
-    const savedEmployee = await this.employeeRepository.save(employee);
-    return this.mapToAuthResponse(savedEmployee);
+    try {
+      const savedEmployee = await this.employeeRepository.save(employee);
+      return this.mapToAuthResponse(savedEmployee);
+    } catch (error) {
+      // Handle unique constraint violation (PostgreSQL error code 23505)
+      if (error.code === '23505') {
+        throw new ConflictException('Email already exists');
+      }
+      throw error;
+    }
   }
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
@@ -56,10 +56,12 @@ export class AuthService {
       where: { email: loginDto.email },
     });
 
-    if (
-      !employee ||
-      !(await bcrypt.compare(loginDto.password, employee.passwordHash))
-    ) {
+    // Always perform bcrypt comparison to prevent timing attacks
+    // Use a dummy hash if employee doesn't exist
+    const passwordHash = employee?.passwordHash || '$2a$12$invalidhashtopreventtimingattack1234567890';
+    const isValid = await bcrypt.compare(loginDto.password, passwordHash);
+
+    if (!employee || !isValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -98,11 +100,6 @@ export class AuthService {
             'http://profile_change_log_service:3002',
           );
 
-          console.log(
-            `Logging profile change: ${field} from "${employee[field]}" to "${newValue}"`,
-          );
-          console.log(`Profile Change Log Service URL: ${profileChangeLogUrl}`);
-
           const response = await fetch(
             `${profileChangeLogUrl}/profile-change-logs`,
             {
@@ -120,18 +117,10 @@ export class AuthService {
           );
 
           if (!response.ok) {
-            console.error(
-              'Failed to log profile change:',
-              response.status,
-              response.statusText,
-            );
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-          } else {
-            console.log('Profile change logged successfully');
+            console.error('Failed to log profile change');
           }
         } catch (error) {
-          console.error('Failed to log profile change:', error.message);
+          console.error('Failed to log profile change');
           // Don't fail the update if logging fails
         }
       }
@@ -163,11 +152,14 @@ export class AuthService {
   ): Promise<PaginatedEmployeesDto> {
     const skip = (page - 1) * limit;
 
+    // Escape special characters in search to prevent SQL injection
+    const escapedSearch = search ? search.replace(/[%_]/g, '\\$&') : '';
+
     const whereCondition = search
       ? [
-          { name: Like(`%${search}%`) },
-          { email: Like(`%${search}%`) },
-          { position: Like(`%${search}%`) },
+          { name: ILike(`%${escapedSearch}%`) },
+          { email: ILike(`%${escapedSearch}%`) },
+          { position: ILike(`%${escapedSearch}%`) },
         ]
       : {};
 
@@ -238,10 +230,10 @@ export class AuthService {
           );
 
           if (!response.ok) {
-            console.error('Failed to log profile change:', response.status);
+            console.error('Failed to log profile change');
           }
         } catch (error) {
-          console.error('Failed to log profile change:', error.message);
+          console.error('Failed to log profile change');
         }
       }
     }

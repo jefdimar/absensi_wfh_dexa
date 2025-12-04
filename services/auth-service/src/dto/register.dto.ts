@@ -6,18 +6,23 @@ import {
   IsOptional,
   Matches,
   IsIn,
+  IsNotEmpty,
+  IsUrl,
 } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   name: string;
 
   @IsEmail()
+  @IsNotEmpty()
   @MaxLength(100)
   email: string;
 
   @IsString()
+  @IsNotEmpty()
   @MinLength(6)
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$/, {
     message:
@@ -32,11 +37,13 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'Phone number must be in E.164 format (e.g., +1234567890)',
+  })
   phoneNumber?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({}, { message: 'Photo URL must be a valid URL' })
   photoUrl?: string;
 
   @IsOptional()
