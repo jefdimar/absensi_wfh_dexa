@@ -100,11 +100,6 @@ export class AuthService {
             'http://profile_change_log_service:3002',
           );
 
-          console.log(
-            `Logging profile change: ${field} from "${employee[field]}" to "${newValue}"`,
-          );
-          console.log(`Profile Change Log Service URL: ${profileChangeLogUrl}`);
-
           const response = await fetch(
             `${profileChangeLogUrl}/profile-change-logs`,
             {
@@ -122,18 +117,10 @@ export class AuthService {
           );
 
           if (!response.ok) {
-            console.error(
-              'Failed to log profile change:',
-              response.status,
-              response.statusText,
-            );
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-          } else {
-            console.log('Profile change logged successfully');
+            console.error('Failed to log profile change');
           }
         } catch (error) {
-          console.error('Failed to log profile change:', error.message);
+          console.error('Failed to log profile change');
           // Don't fail the update if logging fails
         }
       }
@@ -243,10 +230,10 @@ export class AuthService {
           );
 
           if (!response.ok) {
-            console.error('Failed to log profile change:', response.status);
+            console.error('Failed to log profile change');
           }
         } catch (error) {
-          console.error('Failed to log profile change:', error.message);
+          console.error('Failed to log profile change');
         }
       }
     }

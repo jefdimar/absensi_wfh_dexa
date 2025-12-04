@@ -21,17 +21,51 @@ export class NotificationService {
     return await this.notificationRepository.save(notification);
   }
 
-  async getUnreadNotifications(): Promise<AdminNotification[]> {
-    return await this.notificationRepository.find({
+  async getUnreadNotifications(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: AdminNotification[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.notificationRepository.findAndCount({
       where: { read: false },
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
-  async getAllNotifications(): Promise<AdminNotification[]> {
-    return await this.notificationRepository.find({
+  async getAllNotifications(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: AdminNotification[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.notificationRepository.findAndCount({
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   async markAsRead(id: string): Promise<AdminNotification> {

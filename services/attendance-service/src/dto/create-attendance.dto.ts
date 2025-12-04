@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, IsNotEmpty } from 'class-validator';
 
 export enum AttendanceStatus {
   CHECK_IN = 'check-in',
@@ -11,6 +11,7 @@ export class CreateAttendanceDto {
   employeeId: string;
 
   @IsEnum(AttendanceStatus)
+  @IsNotEmpty()
   status: AttendanceStatus;
 
   @IsOptional()

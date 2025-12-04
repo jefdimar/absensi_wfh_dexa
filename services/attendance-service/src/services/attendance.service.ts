@@ -253,6 +253,15 @@ export class AttendanceService {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
+    // Validate date range (max 365 days to prevent performance issues)
+    const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysDiff > 365) {
+      throw new BadRequestException('Date range cannot exceed 365 days');
+    }
+    if (daysDiff < 0) {
+      throw new BadRequestException('End date must be after start date');
+    }
+
     // Set end date to end of day
     end.setHours(23, 59, 59, 999);
 

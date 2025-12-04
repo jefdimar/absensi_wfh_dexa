@@ -51,6 +51,23 @@ export class AttendanceController {
     }
   }
 
+  /**
+   * Validates pagination parameters
+   * @param page - Page number (must be >= 1)
+   * @param limit - Items per page (must be between 1 and 100)
+   */
+  private validatePagination(page: number, limit: number): void {
+    if (page < 1) {
+      throw new BadRequestException('Page must be greater than or equal to 1');
+    }
+    if (limit < 1) {
+      throw new BadRequestException('Limit must be greater than or equal to 1');
+    }
+    if (limit > 100) {
+      throw new BadRequestException('Limit cannot exceed 100');
+    }
+  }
+
   @Get()
   getHello(): string {
     return 'Attendance Service is running!';
@@ -195,6 +212,9 @@ export class AttendanceController {
     @Query('limit', ParseIntPipe) limit: number = 10,
     @Query('date') date?: string,
   ): Promise<PaginatedAttendanceDto> {
+    // Validate pagination parameters
+    this.validatePagination(page, limit);
+
     // Validate date if provided
     if (date) {
       this.validateDateString(date);
