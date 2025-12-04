@@ -30,14 +30,6 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-    const existingEmployee = await this.employeeRepository.findOne({
-      where: { email: registerDto.email },
-    });
-
-    if (existingEmployee) {
-      throw new ConflictException('Email already exists');
-    }
-
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
 
@@ -47,8 +39,16 @@ export class AuthService {
       role: registerDto.role || 'employee',
     });
 
-    const savedEmployee = await this.employeeRepository.save(employee);
-    return this.mapToAuthResponse(savedEmployee);
+    try {
+      const savedEmployee = await this.employeeRepository.save(employee);
+      return this.mapToAuthResponse(savedEmployee);
+    } catch (error) {
+      // Handle unique constraint violation (PostgreSQL error code 23505)
+      if (error.code === '23505') {
+        throw new ConflictException('Email already exists');
+      }
+      throw error;
+    }
   }
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
