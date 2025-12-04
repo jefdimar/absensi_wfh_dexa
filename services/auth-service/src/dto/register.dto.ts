@@ -7,6 +7,7 @@ import {
   Matches,
   IsIn,
   IsNotEmpty,
+  IsUrl,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -36,11 +37,13 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'Phone number must be in E.164 format (e.g., +1234567890)',
+  })
   phoneNumber?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({}, { message: 'Photo URL must be a valid URL' })
   photoUrl?: string;
 
   @IsOptional()

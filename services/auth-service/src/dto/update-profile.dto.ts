@@ -1,4 +1,4 @@
-import { IsString, MaxLength, IsOptional } from 'class-validator';
+import { IsString, MaxLength, IsOptional, Matches, IsUrl } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -13,11 +13,13 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'Phone number must be in E.164 format (e.g., +1234567890)',
+  })
   phoneNumber?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({}, { message: 'Photo URL must be a valid URL' })
   photoUrl?: string;
 
   // Role field removed - users cannot escalate their own privileges
