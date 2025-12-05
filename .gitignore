@@ -12,6 +12,19 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Database backups
+backups/
+*.sql
+*.sql.gz
+
+# SSL certificates and private keys
+nginx/ssl/
+nginx/certbot/
+*.pem
+*.key
+*.crt
+*.csr
+
 # OS
 .DS_Store
 
